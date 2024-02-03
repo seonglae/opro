@@ -128,8 +128,9 @@ def main(_):
       "gsm8k",
       "multiarith",
       "aqua",
+      "nq",
   }, (
-      "The lower-case dataset name must be one of mmlu, bbh, gsm8k, multiarith,"
+      "The lower-case dataset name must be one of mmlu, bbh, gsm8k, nq, multiarith,"
       " or aqua."
   )
   if dataset_name == "mmlu":
@@ -169,6 +170,8 @@ def main(_):
         "web_of_lies",
         "word_sorting",
     }
+  elif dataset_name == "nq":
+    assert task_name in {"train", "test"}
   elif dataset_name == "gsm8k":
     assert task_name in {"train", "test"}
   else:
@@ -213,6 +216,8 @@ def main(_):
     )
   elif dataset_name == "gsm8k":
     root_data_folder_path = os.path.join(ROOT_DATA_FOLDER_PATH, "gsm_data")
+  elif dataset_name == "nq":
+    root_data_folder_path = os.path.join(ROOT_DATA_FOLDER_PATH, "nq_data")
   elif dataset_name == "aqua":
     root_data_folder_path = os.path.join(ROOT_DATA_FOLDER_PATH, "AQuA-data")
   else:
@@ -515,6 +520,11 @@ def main(_):
   elif dataset_name == "aqua":
     tasks_all = [task_name]
     multiple_choice_tasks = set(tasks_all)
+    boolean_tasks = set()
+    numerical_output_tasks = set()
+  elif dataset_name == "nq":
+    tasks_all = [task_name]
+    multiple_choice_tasks = set()
     boolean_tasks = set()
     numerical_output_tasks = set()
   else:

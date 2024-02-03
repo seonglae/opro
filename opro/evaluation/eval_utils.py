@@ -194,6 +194,7 @@ def gen_prompt(
       "gsm8k",
       "multiarith",
       "aqua",
+      "nq",
   }, (
       "The lower-case dataset name must be one of mmlu, bbh, gsm8k, multiarith,"
       " or aqua."
@@ -719,8 +720,12 @@ def evaluate_single_instruction(
             raw_answers,
         )
     )
+    second_round_instruction = "So the final answer is"
+    if dataset_name == "nq":
+      second_round_instruction = "Extract a concise noun-based answer from the provided context for the question. Your answer should be under three words and extracted directly from a context of no more than five words. You can analyze the context step by step to derive the answer. Avoid using prefixes that indicate the type of answer; simply present the shortest relevant answer span from the context."
+
     raw_prompts_flattened_second_round = [
-        item + " " + "So the final answer is"
+        item + " " + second_round_instruction
         for item in raw_prompts_flattened_second_round
     ]
 

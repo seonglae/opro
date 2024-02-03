@@ -94,7 +94,7 @@ _INSTRUCTION_POS = flags.DEFINE_string(
 
 _META_PROMPT_TYPE = flags.DEFINE_string(
     "meta_prompt_type",
-    "both_instructions_and_exemplars",
+    "instructions_only",
     "The type of meta-prompt: whether to have both previous instructions and"
     " dataset exemplars (often for fine-tuned optimizers), or to have only"
     " previous instructions (often for pre-trained optimizers).",
@@ -114,7 +114,8 @@ def main(_):
       "mmlu",
       "bbh",
       "gsm8k",
-  }, "The lower-case dataset name must be one of mmlu, bbh, or gsm8k."
+      "nq",
+  }, "The lower-case dataset name must be one of mmlu, nq, bbh, or gsm8k."
   if dataset_name == "mmlu":
     assert task_name in {
         "STEM",
@@ -152,6 +153,9 @@ def main(_):
         "web_of_lies",
         "word_sorting",
     }
+  elif dataset_name == "nq":
+    assert dataset_name == "nq"
+    assert task_name in {"train", "test"}
   else:
     assert dataset_name == "gsm8k"
     assert task_name in {"train", "test"}
@@ -214,6 +218,8 @@ def main(_):
     root_data_folder_path = os.path.join(
         ROOT_DATA_FOLDER_PATH, "BIG-Bench-Hard-data/"
     )
+  elif dataset_name == "nq":
+    root_data_folder_path = os.path.join(ROOT_DATA_FOLDER_PATH, "nq_data")
   else:
     assert dataset_name == "gsm8k"
     root_data_folder_path = os.path.join(ROOT_DATA_FOLDER_PATH, "gsm_data")
@@ -574,6 +580,12 @@ def main(_):
         "sports_understanding",  # yes or no
         "web_of_lies",  # yes or no
     }
+  elif dataset_name == "nq":
+    assert dataset_name in {"nq"}
+    tasks_all = [task_name]
+    multiple_choice_tasks = set()
+    boolean_tasks = set()
+    numerical_output_tasks = set()
 
   else:
     assert dataset_name in {"gsm8k"}
@@ -586,6 +598,11 @@ def main(_):
     raw_data = pd.DataFrame()
     prediction_treat_as_number = False
     prediction_treat_as_bool = False
+  if dataset_name == "nq":
+    raw_data = pd.DataFrame()
+    prediction_treat_as_number = False
+    prediction_treat_as_bool = False
+
   elif dataset_name == "bbh":
     raw_data = []
     prediction_treat_as_number = bool(
@@ -609,7 +626,8 @@ def main(_):
       folder_name = t[0]
       task_name = t[1]
       single_task_df = pd.read_csv(
-          os.path.join(root_data_folder_path, f"{folder_name}/{task_name}.csv"),
+          os.path.join(root_data_folder_path,
+                       f"{folder_name}/{task_name}.csv"),
           index_col=None,
           header=None,
       )
@@ -620,6 +638,12 @@ def main(_):
           task_name, base_dir=root_data_folder_path
       )
       raw_data += single_task_list
+    elif dataset_name == "nq":
+      assert dataset_name == "nq"
+      task_name = t
+      f_gsm = os.path.join(root_data_folder_path, f"nq_{task_name}.tsv")
+      single_task_df = pd.read_csv(f_gsm, sep="\t", header=None)
+      raw_data = pd.concat([raw_data, single_task_df])
     else:
       assert dataset_name == "gsm8k"
       task_name = t
@@ -631,6 +655,9 @@ def main(_):
     num_examples = raw_data.shape[0]
   elif dataset_name == "bbh":
     num_examples = len(raw_data)
+  elif dataset_name == "nq":
+    assert dataset_name in {"nq"}
+    num_examples = raw_data.shape[0]
   else:
     assert dataset_name in {"gsm8k"}
     num_examples = raw_data.shape[0]
@@ -640,6 +667,9 @@ def main(_):
   if dataset_name == "mmlu":
     train_ratio = 0.8
     eval_ratio = 0.2
+  elif dataset_name == "nq":
+    train_ratio = 0.035
+    eval_ratio = 0
   elif dataset_name == "gsm8k":
     train_ratio = 0.035
     eval_ratio = 0
@@ -693,7 +723,11 @@ def main(_):
   else:
     assert scorer_llm_name in {"gpt-3.5-turbo", "gpt-4"}
     extract_final_answer_by_prompting_again = False
+    if dataset_name == "nq":
+      extract_final_answer_by_prompting_again = True
     include_qa = False
+    if dataset_name == "nq":
+      include_qa = True
     evaluate_in_parallel = False
 
   optimizer_llm_temperature = optimizer_llm_dict["temperature"]
@@ -712,6 +746,28 @@ def main(_):
       # "",
       # "The answer is",
   ]
+  if dataset_name == 'nq':
+    initial_instructions = [
+      '''Rewrite the given passages to be easier for the reader answering the given question.
+The rewrited text should be half the total length of the original passages. Your response must be at least 200 words long.
+The given passages are related about the question topic.
+Use only information in the document.
+Reduce the noise unrelated to answer the question.
+Remove unrelated phrases and sentences to answer the question.
+Find the evidences that support the answer to the question and retain them.
+Print only the rewrited texts
+The final answer for this question is contained is the passages so maintain the exact span of answer smaller than 5 words.''',
+      '''Condense the provided passages to focus on key elements directly answering the question. Your summary should be a third of the original passages' length and at least 100 words. Highlight critical information and evidence supporting the answer. Avoid generalizations or unrelated details. Ensure the final answer is present in the summary, keeping the exact span of the answer to under five words. Present the summary in a clear, bullet-point format for each key element related to the question. Aim for a balance between conciseness and completeness.''',
+      '''Your task is to rewrite the provided passages to enhance their specificity and precision in relation to the question. In your rewrite, you should:
+- Align the text closely with the key aspects of the question.
+- Your summary should be a half of the original passages' length and at least 150 words.
+- Prioritize information most likely to contain or support the answer.
+- Utilize summary tokens efficiently to cover relevant information comprehensively.
+- Ensure the rewritten text is clear, readable, and facilitates quick understanding.
+- Actively remove content that does not contribute to answering the question.
+- Understand the intent of the question and summarize to make it easier to find an answer according to the intent.
+Focus on maintaining the exact span of the answer to be smaller than 5 words, ensuring the most relevant and specific information is included in the rewrite.''',
+    ]
   few_shot_qa_pairs = True
   # one of {'accumulative_most_frequent', 'current_most_frequent', 'random',
   # 'constant'}

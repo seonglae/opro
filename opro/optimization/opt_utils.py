@@ -155,7 +155,8 @@ def gen_meta_prompt(
       "mmlu",
       "bbh",
       "gsm8k",
-  }, "The lower-case dataset name must be one of mmlu, bbh, gsm8k."
+      "nq",
+  }, "The lower-case dataset name must be one of mmlu, bbh, gsm8k, nq."
   assert num_score_buckets == np.inf or isinstance(num_score_buckets, int)
 
   meta_prompt = ""
@@ -308,6 +309,8 @@ def gen_meta_prompt(
 
     if dataset_name == "gsm8k":
       instruction_task_description = "grade school math"
+    elif dataset_name == "nq":
+      instruction_task_description = "Summarizing or rewriting Wikipedia's randomly extracted, imperfect passages into structured text, enabling a language model to perform open-domain, single-hop, short-answer question answering"
     elif dataset_name == "mmlu":
       instruction_task_description = task_name
     else:
@@ -405,6 +408,7 @@ def run_evolution(**kwargs):
       "mmlu",
       "bbh",
       "gsm8k",
+      "nq",
   }, "The lower-case dataset name must be one of mmlu, bbh, gsm8k."
   assert optimizer_llm_temperature_schedule in {
       "constant",
@@ -479,6 +483,9 @@ def run_evolution(**kwargs):
     is_multiple_choice = True
     is_multiple_choice_eval = True
   elif dataset_name in {"gsm8k"}:
+    is_multiple_choice = False
+    is_multiple_choice_eval = False
+  elif dataset_name in {"nq"}:
     is_multiple_choice = False
     is_multiple_choice_eval = False
   else:
