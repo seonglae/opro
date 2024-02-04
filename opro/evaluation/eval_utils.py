@@ -182,7 +182,7 @@ def gen_prompt(
     include_qa (bool): whether to include "Q:" and "A:" formats in the prompt.
     instruction_pos (str): where to put the instruction, one of {'before_Q',
       'Q_begin', 'Q_end', 'A_begin'}.
-    dataset_name (str): one of {"mmlu", "bbh", "gsm8k"}.
+    dataset_name (str): one of {"mmlu", "bbh", "gsm8k", "nq"}.
 
   Returns:
     prompt (str): the generated prompt.
@@ -196,7 +196,7 @@ def gen_prompt(
       "aqua",
       "nq",
   }, (
-      "The lower-case dataset name must be one of mmlu, bbh, gsm8k, multiarith,"
+      "The lower-case dataset name must be one of mmlu, bbh, gsm8k, nq, multiarith,"
       " or aqua."
   )
   assert instruction_pos in {
@@ -214,6 +214,8 @@ def gen_prompt(
   elif dataset_name == "bbh":
     question = data[idx]["input"]
   elif dataset_name == "gsm8k":
+    question = data.iloc[idx, 0]
+  elif dataset_name == "nq":
     question = data.iloc[idx, 0]
   elif dataset_name == "multiarith":
     question = data[idx]["sQuestion"].strip()
@@ -267,10 +269,11 @@ def fetch_true_answer(data, idx, dataset_name):
       "mmlu",
       "bbh",
       "gsm8k",
+      "nq",
       "multiarith",
       "aqua",
   }, (
-      "The lower-case dataset name must be one of mmlu, bbh, gsm8k, multiarith,"
+      "The lower-case dataset name must be one of mmlu, bbh, gsm8k, nq, multiarith,"
       " or aqua."
   )
   if dataset_name == "mmlu":
@@ -281,6 +284,8 @@ def fetch_true_answer(data, idx, dataset_name):
     return data.iloc[idx, 1]
   elif dataset_name == "multiarith":
     return int(data[idx]["lSolutions"][0])
+  elif dataset_name == "nq":
+    return data.iloc[idx, 1]
   else:
     assert dataset_name == "aqua"
     return data[idx]["correct"]
@@ -488,6 +493,7 @@ def _get_accuracy(
   )
   if treat_include_as_correct:
     accuracy = int(bool(accuracy) or true_answer_included_in_pred_answer)
+  accuracy = int(bool(accuracy) or pred_answer in true_answer)
   return accuracy
 
   # Alternatively, we may only check if the true_answer string is in the bag of

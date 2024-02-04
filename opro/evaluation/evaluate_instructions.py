@@ -590,6 +590,16 @@ def main(_):
       prediction_treat_as_bool = bool(task_name in boolean_tasks)
       num_examples = len(raw_data)
       original_index = np.arange(num_examples)
+    elif dataset_name == "nq":
+      task_name = t
+      raw_data = pd.DataFrame()
+      f_gsm = os.path.join(root_data_folder_path, f"nq_{task_name}.tsv")
+      single_task_df = pd.read_csv(f_gsm, sep="\t", header=None)
+      raw_data = pd.concat([raw_data, single_task_df])
+      prediction_treat_as_number = False
+      prediction_treat_as_bool = False
+      num_examples = raw_data.shape[0]
+      original_index = np.arange(num_examples)
     elif dataset_name == "gsm8k":
       task_name = t
       raw_data = pd.DataFrame()

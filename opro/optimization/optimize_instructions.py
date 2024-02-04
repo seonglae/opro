@@ -668,7 +668,7 @@ def main(_):
     train_ratio = 0.8
     eval_ratio = 0.2
   elif dataset_name == "nq":
-    train_ratio = 0.035
+    train_ratio = 0.2
     eval_ratio = 0
   elif dataset_name == "gsm8k":
     train_ratio = 0.035

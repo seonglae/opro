@@ -213,6 +213,10 @@ def gen_meta_prompt(
         elif dataset_name == "bbh":
           question = data[idx]["input"]
           true_answer = data[idx]["target"]
+        elif dataset_name == "nq":
+          assert dataset_name == "nq"
+          question = data.iloc[idx, 0]
+          true_answer = data.iloc[idx, 1]
         else:
           assert dataset_name == "gsm8k"
           question = data.iloc[idx, 0]
@@ -409,7 +413,7 @@ def run_evolution(**kwargs):
       "bbh",
       "gsm8k",
       "nq",
-  }, "The lower-case dataset name must be one of mmlu, bbh, gsm8k."
+  }, "The lower-case dataset name must be one of mmlu, bbh, gsm8k, nq."
   assert optimizer_llm_temperature_schedule in {
       "constant",
       "linear_increase",
