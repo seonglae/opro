@@ -59,6 +59,7 @@ import openai
 from opro import prompt_utils
 from opro.optimization import opt_utils
 import pandas as pd
+import datasets as ds
 
 ROOT_DATA_FOLDER_PATH = os.path.join(OPRO_ROOT_PATH, "data")
 
@@ -155,7 +156,7 @@ def main(_):
     }
   elif dataset_name == "nq":
     assert dataset_name == "nq"
-    assert task_name in {"train", "test"}
+    assert task_name in {"train", "test", "validation"}
   else:
     assert dataset_name == "gsm8k"
     assert task_name in {"train", "test"}
@@ -641,9 +642,12 @@ def main(_):
     elif dataset_name == "nq":
       assert dataset_name == "nq"
       task_name = t
-      f_gsm = os.path.join(root_data_folder_path, f"nq_{task_name}.tsv")
-      single_task_df = pd.read_csv(f_gsm, sep="\t", header=None)
-      raw_data = pd.concat([raw_data, single_task_df])
+      dataset = ds.load_dataset("seonglae/nq_open-validation", 'psgs_w100.dpr_nq.10_gpt-3.5-turbo.v6.1_gpt-3.5-turbo')['train']
+      def list_to_string(row):
+          row['answers'] = ', '.join(row['answer'])
+          return row
+      dataset = dataset.map(list_to_string)
+      raw_data = pd.DataFrame(dataset)
     else:
       assert dataset_name == "gsm8k"
       task_name = t
@@ -668,7 +672,7 @@ def main(_):
     train_ratio = 0.8
     eval_ratio = 0.2
   elif dataset_name == "nq":
-    train_ratio = 0.2
+    train_ratio = 0.035
     eval_ratio = 0
   elif dataset_name == "gsm8k":
     train_ratio = 0.035

@@ -22,6 +22,7 @@ import re
 import string
 import sys
 import time
+from typing import List
 
 OPRO_ROOT_PATH = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -159,8 +160,7 @@ def _format_aqua_example(data, idx, include_question=True):
   if include_question:
     question += "\nWhat's the answer in (A) (B) (C) (D) (E)?"
   return question
-
-
+  
 def gen_prompt(
     data,
     instruction,
@@ -216,7 +216,7 @@ def gen_prompt(
   elif dataset_name == "gsm8k":
     question = data.iloc[idx, 0]
   elif dataset_name == "nq":
-    question = data.iloc[idx, 0]
+    question = data['question'][idx]
   elif dataset_name == "multiarith":
     question = data[idx]["sQuestion"].strip()
   else:
@@ -224,29 +224,33 @@ def gen_prompt(
     question = _format_aqua_example(data, idx)
 
   prompt = ""
+  q_prefix = "Q: "
+  a_prefix = "A: "
+  if dataset_name == "nq":
+    a_prefix = "Rewrited: "
   if include_qa:  # when "Q:" and "A:" are present in the prompt
     if instruction_pos == "before_Q":
       if instruction:
         prompt += instruction + "\n"
-      prompt += "Q: " + question
-      prompt += "\n\nA:"
+      prompt += q_prefix + question
+      prompt += "\n\n" + a_prefix
     elif instruction_pos == "Q_begin":
       if instruction:
-        prompt += "Q: " + instruction + "\n"
-      else:
-        prompt += "Q: "
-      prompt += question
-      prompt += "\n\nA:"
+        prompt += instruction + "\n\n"
+      prompt += q_prefix + question
+      if dataset_name == "nq":
+        prompt += '\n\n' + "Passages: " + data['retrieved'][idx]
+      prompt += "\n\n" + a_prefix
     elif instruction_pos == "Q_end":
-      prompt += "Q: " + question
+      prompt += q_prefix + question
       if instruction:
-        prompt += "\n" + instruction + "\n\nA:"
+        prompt += "\n" + instruction + "\n\n" + a_prefix
       else:
-        prompt += "\n\nA:"
+        prompt += "\n\n" + a_prefix
     else:
       assert instruction_pos == "A_begin"
-      prompt += f"Q: {question}\n\n"
-      prompt += "A:"
+      prompt += f"${q_prefix}{question}\n\n"
+      prompt += a_prefix
       if instruction:
         prompt += f" {instruction}"
   else:  # when there're no "Q:" and "A:" in the prompt
@@ -285,7 +289,7 @@ def fetch_true_answer(data, idx, dataset_name):
   elif dataset_name == "multiarith":
     return int(data[idx]["lSolutions"][0])
   elif dataset_name == "nq":
-    return data.iloc[idx, 1]
+    return data['answers'][idx]
   else:
     assert dataset_name == "aqua"
     return data[idx]["correct"]
@@ -710,9 +714,12 @@ def evaluate_single_instruction(
         call_server_local_func=call_server_func,
     )
   else:  # no parallelism in first round
+    print('\n0. example count:', str(len(raw_prompts_flattened)))
+    print('\n1. first round prompt example:', raw_prompts_flattened[0] + '\n')
     raw_answers = [
         call_server_func(prompt)[0] for prompt in raw_prompts_flattened
     ]
+    print('\n2. first round answer example:', raw_answers[0] + '\n')
 
   if verbose:
     print("first round of prompting finished")
@@ -727,13 +734,19 @@ def evaluate_single_instruction(
         )
     )
     second_round_instruction = "So the final answer is"
-    if dataset_name == "nq":
-      second_round_instruction = "Extract a concise noun-based answer from the provided context for the question. Your answer should be under three words and extracted directly from a context of no more than five words. You can analyze the context step by step to derive the answer. Avoid using prefixes that indicate the type of answer; simply present the shortest relevant answer span from the context."
 
     raw_prompts_flattened_second_round = [
         item + " " + second_round_instruction
         for item in raw_prompts_flattened_second_round
     ]
+    if dataset_name == "nq":
+      second_round_instruction = "###Instruction###\nExtract a concise noun-based answer from the provided context for the question. Your answer should be under three words and extracted directly from a context of no more than five words. You can analyze the context step by step to derive the answer. Avoid using prefixes that indicate the type of answer; simply present the shortest relevant answer span from the context."
+      raw_prompts_flattened_second_round = [
+        second_round_instruction + f'\n\n###Question###\n${data.iloc[eval_index_all[i], 0]}\n\n###Context###\n${summary}\n\n###Answer###\n'
+        for i, summary in enumerate(raw_answers)
+      ]
+
+    print("\n3. second round prompt example:", raw_prompts_flattened_second_round[0] + "\n")
 
     # second round of prompting to extract final answer
     # We only need a small max_decode_steps because the answer usually shows up
@@ -754,8 +767,10 @@ def evaluate_single_instruction(
           call_server_func(prompt, max_decode_steps=50)[0]
           for prompt in raw_prompts_flattened_second_round
       ]
+      print("\n4. true answer example:" + true_answers[0] + "\n")
+      print("\n5. second round answer example:", raw_answers_second_round[0] + "\n")
     if verbose:
-      print("second round of prompting finished")
+      print("\nsecond round of prompting finished\n")
 
   if verbose:
     print(

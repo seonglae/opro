@@ -215,8 +215,8 @@ def gen_meta_prompt(
           true_answer = data[idx]["target"]
         elif dataset_name == "nq":
           assert dataset_name == "nq"
-          question = data.iloc[idx, 0]
-          true_answer = data.iloc[idx, 1]
+          question = data['question'][idx]
+          true_answer = data['answers'][idx]
         else:
           assert dataset_name == "gsm8k"
           question = data.iloc[idx, 0]
@@ -314,7 +314,7 @@ def gen_meta_prompt(
     if dataset_name == "gsm8k":
       instruction_task_description = "grade school math"
     elif dataset_name == "nq":
-      instruction_task_description = "Summarizing or rewriting Wikipedia's randomly extracted, imperfect passages into structured text, enabling a language model to perform open-domain, single-hop, short-answer question answering"
+      instruction_task_description = "Summarizing or rewriting Wikipedia's randomly extracted, imperfect passages into structured text, thereby aiding another language model to perform open-domain, single-hop, short-answer question answering"
     elif dataset_name == "mmlu":
       instruction_task_description = task_name
     else:
@@ -555,7 +555,7 @@ def run_evolution(**kwargs):
     detailed_results_df_by_instruction_dict[instruction] = detailed_results_df
     scores = detailed_results_df["accuracy"]
     average_score = np.average(scores)
-    print(f"instruction: {instruction}, score: {average_score}")
+    print(f"instruction: {instruction}\nscore: {average_score}")
     filename = eval_utils.instruction_to_filename(instruction)
     file_path = os.path.join(result_by_instruction_folder, f"{filename}.csv")
     detailed_results_df.to_csv(file_path, index=True, header=True)

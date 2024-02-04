@@ -43,6 +43,7 @@ import functools
 import json
 import os
 import sys
+import datasets as ds
 
 OPRO_ROOT_PATH = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -171,7 +172,7 @@ def main(_):
         "word_sorting",
     }
   elif dataset_name == "nq":
-    assert task_name in {"train", "test"}
+    assert task_name in {"train", "test", "validation"}
   elif dataset_name == "gsm8k":
     assert task_name in {"train", "test"}
   else:
@@ -592,10 +593,13 @@ def main(_):
       original_index = np.arange(num_examples)
     elif dataset_name == "nq":
       task_name = t
-      raw_data = pd.DataFrame()
-      f_gsm = os.path.join(root_data_folder_path, f"nq_{task_name}.tsv")
-      single_task_df = pd.read_csv(f_gsm, sep="\t", header=None)
-      raw_data = pd.concat([raw_data, single_task_df])
+      dataset = ds.load_dataset("seonglae/nq_open-validation", 'psgs_w100.dpr_nq.10_gpt-3.5-turbo.v6.1_gpt-3.5-turbo')['train']
+      def list_to_string(row):
+          row['answers'] = ', '.join(row['answer'])
+          return row
+      dataset = dataset.map(list_to_string)
+      raw_data = pd.DataFrame(dataset)
+      
       prediction_treat_as_number = False
       prediction_treat_as_bool = False
       num_examples = raw_data.shape[0]
