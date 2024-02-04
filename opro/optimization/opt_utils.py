@@ -322,7 +322,7 @@ def gen_meta_prompt(
       instruction_task_description = " ".join(task_name.split("_"))
 
     meta_instruction = (
-        f"Create a piece of text {instruction_pos_description.strip()} to"
+        f"Create a instruction text {instruction_pos_description.strip()} to"
         " enhance the precision in solving diverse"
         f" {instruction_task_description.strip()} problems."
     )
@@ -813,7 +813,7 @@ def run_evolution(**kwargs):
 
     to_evaluate_instructions = []
     for instruction in generated_instructions:
-      if len(instruction) > 500:
+      if len(instruction) > 2000:
         print(f"Step {i_step}, instruction: {instruction}, too long, skipped")
         continue
       if dataset_name == "gsm8k" and any(
@@ -947,7 +947,7 @@ def run_evolution(**kwargs):
       scores = detailed_results_df["accuracy"]
       average_score = np.average(scores)
       print(
-          f"Step {i_step}, instruction: {instruction}, score: {average_score}"
+          f"Step {i_step}, instruction: {instruction}\nscore: {average_score}"
       )
 
       # increment the counter on wrong questions
@@ -1014,7 +1014,7 @@ def run_evolution(**kwargs):
           else:
             eval_score = instruction_eval_score_dict[instruction]
           print(
-              f"EVAL: \nStep {i_step}, instruction: {instruction}, eval score:"
+              f"EVAL: \nStep {i_step}, instruction: {instruction}\neval score:"
               f" {eval_score:.2f}"
           )
           eval_results.append((i_step, instruction, eval_score))

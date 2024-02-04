@@ -714,12 +714,14 @@ def evaluate_single_instruction(
         call_server_local_func=call_server_func,
     )
   else:  # no parallelism in first round
-    print('\n0. example count:', str(len(raw_prompts_flattened)))
-    print('\n1. first round prompt example:', raw_prompts_flattened[0] + '\n')
+    if len(raw_prompts_flattened) > 0:
+      print('\n0. example count:', str(len(raw_prompts_flattened)))
+      print('\n1. first round prompt example:', raw_prompts_flattened[0] + '\n')
     raw_answers = [
         call_server_func(prompt)[0] for prompt in raw_prompts_flattened
     ]
-    print('\n2. first round answer example:', raw_answers[0] + '\n')
+    if len(raw_answers) > 0:
+      print('\n2. first round answer example:', raw_answers[0] + '\n')
 
   if verbose:
     print("first round of prompting finished")
@@ -746,7 +748,8 @@ def evaluate_single_instruction(
         for i, summary in enumerate(raw_answers)
       ]
 
-    print("\n3. second round prompt example:", raw_prompts_flattened_second_round[0] + "\n")
+    if len(raw_prompts_flattened_second_round) > 0:
+      print("\n3. second round prompt example:", raw_prompts_flattened_second_round[0] + "\n")
 
     # second round of prompting to extract final answer
     # We only need a small max_decode_steps because the answer usually shows up
@@ -767,8 +770,9 @@ def evaluate_single_instruction(
           call_server_func(prompt, max_decode_steps=50)[0]
           for prompt in raw_prompts_flattened_second_round
       ]
-      print("\n4. true answer example:" + true_answers[0] + "\n")
-      print("\n5. second round answer example:", raw_answers_second_round[0] + "\n")
+      if len(raw_answers_second_round) > 0:
+        print("\n4. true answer example:" + true_answers[0] + "\n")
+        print("\n5. second round answer example:", raw_answers_second_round[0] + "\n")
     if verbose:
       print("\nsecond round of prompting finished\n")
 
