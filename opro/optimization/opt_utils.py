@@ -328,7 +328,7 @@ def gen_meta_prompt(
     )
     old_instructions_and_scores = sorted(
         old_instructions_and_scores, key=lambda x: x[1]
-    )
+    )[-max_num_instructions:]
     old_instructions_and_scores_str = ""
     for instruction, score, _ in old_instructions_and_scores:
       if num_score_buckets == np.inf:

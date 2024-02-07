@@ -20,6 +20,7 @@ from multiprocessing import dummy as mp  # multithreading
 import os
 import re
 import string
+import unicodedata
 import sys
 import time
 from typing import List
@@ -295,6 +296,11 @@ def fetch_true_answer(data, idx, dataset_name):
     return data[idx]["correct"]
 
 
+def fetch_true_answers(data, idx, dataset_name):
+  assert dataset_name == "nq"
+  return data['answer'][idx]
+
+
 def _get_index_from_symbol(answer):
   """Get the index from the letter symbols A, B, C, D, to extract answer texts.
 
@@ -497,7 +503,6 @@ def _get_accuracy(
   )
   if treat_include_as_correct:
     accuracy = int(bool(accuracy) or true_answer_included_in_pred_answer)
-  accuracy = int(bool(accuracy) or pred_answer in true_answer)
   return accuracy
 
   # Alternatively, we may only check if the true_answer string is in the bag of
@@ -505,6 +510,42 @@ def _get_accuracy(
   # true_answer == '(A)' and pred_answer == '(A) <some explanations>'.
   # The code would be "if true_answer.lower() in pred_answer.lower().split():".
   # However, this may incur false positives, so we don't adopt it for now.
+
+
+def normalize(s: str):
+  """Normalize answer."""
+  s = unicodedata.normalize("NFD", s)
+
+  def remove_articles(text):
+    return re.sub(r"\b(a|an|the)\b", " ", text)
+
+  def white_space_fix(text):
+    return " ".join(text.split())
+
+  def remove_punc(text):
+    exclude = set(string.punctuation)
+    return "".join(ch for ch in text if ch not in exclude)
+
+  def lower(text):
+    return text.lower()
+  return white_space_fix(remove_articles(remove_punc(lower(s))))
+
+
+def exact_match(answers, prediction):
+  """ Facebook DPR exact match metric.
+  https://github.com/facebookresearch/DPR/blob/main/train_extractive_reader.py#L253
+  Args:
+      answers (_type_): _description_
+      prediction (_type_): _description_
+
+  Returns:
+      _type_: _description_
+  """
+  if any((normalize(answer) == normalize(prediction) for answer in answers)):
+    return 1
+  if ',' in prediction:
+    return np.mean([float(any((normalize(answer) == normalize(p)) for answer in answers)) for p in prediction.split(',')])
+  return 0
 
 
 def get_accuracy_of_list(
@@ -529,6 +570,10 @@ def get_accuracy_of_list(
     accuracy (float): the accuracy of the list, like 0.4 for the above example.
   """
   # pylint: disable=g-long-lambda
+  if isinstance(true_answer, list):
+    accuracy_list = [exact_match(true_answer, p) for p in pred_answer_list]
+    return np.average(accuracy_list)
+
   assert not isinstance(true_answer, list)
   accuracy_list = list(
       map(
@@ -851,14 +896,28 @@ def evaluate_single_instruction(
   for i, _ in enumerate(eval_index_all):
     treat_include_as_correct = not prediction_treat_as_number_list[i]
     input_text = raw_prompts_flattened[i] if is_multiple_choice[i] else ""
-    accuracy = get_accuracy_of_list(
-        true_answer=true_answers[i],
-        pred_answer_list=choices[
-            int(num_decodes * i) : int(num_decodes * (i + 1))
-        ],
-        input_text=input_text,
-        treat_include_as_correct=treat_include_as_correct,
-    )
+    if dataset_name == 'nq':
+      list_answers = [
+          fetch_true_answers(data, idx=idx, dataset_name=dataset_name)
+          for idx in eval_index_all
+      ]
+      accuracy = get_accuracy_of_list(
+          true_answer=list_answers[i],
+          pred_answer_list=choices[
+              int(num_decodes * i) : int(num_decodes * (i + 1))
+          ],
+          input_text=input_text,
+          treat_include_as_correct=treat_include_as_correct,
+      )
+    else:
+      accuracy = get_accuracy_of_list(
+          true_answer=true_answers[i],
+          pred_answer_list=choices[
+              int(num_decodes * i) : int(num_decodes * (i + 1))
+          ],
+          input_text=input_text,
+          treat_include_as_correct=treat_include_as_correct,
+      )
     accuracies.append(accuracy)
 
   detailed_results_df = pd.DataFrame(

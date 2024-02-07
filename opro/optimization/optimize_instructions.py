@@ -672,7 +672,7 @@ def main(_):
     train_ratio = 0.8
     eval_ratio = 0.2
   elif dataset_name == "nq":
-    train_ratio = 0.035
+    train_ratio = 0.025
     eval_ratio = 0
   elif dataset_name == "gsm8k":
     train_ratio = 0.035
@@ -752,25 +752,8 @@ def main(_):
   ]
   if dataset_name == 'nq':
     initial_instructions = [
-      '''Rewrite the given passages to be easier for the reader answering the given question.
-The rewrited text should be half the total length of the original passages. Your response must be at least 200 words long.
-The given passages are related about the question topic.
-Use only information in the document.
-Reduce the noise unrelated to answer the question.
-Remove unrelated phrases and sentences to answer the question.
-Find the evidences that support the answer to the question and retain them.
-Print only the rewrited texts
-The final answer for this question is contained is the passages so maintain the exact span of answer smaller than 5 words.''',
-      '''Condense the provided passages to focus on key elements directly answering the question. Your summary should be a third of the original passages' length and at least 100 words. Highlight critical information and evidence supporting the answer. Avoid generalizations or unrelated details. Ensure the final answer is present in the summary, keeping the exact span of the answer to under five words. Present the summary in a clear, bullet-point format for each key element related to the question. Aim for a balance between conciseness and completeness.''',
-      '''Your task is to rewrite the provided passages to enhance their specificity and precision in relation to the question. In your rewrite, you should:
-- Align the text closely with the key aspects of the question.
-- Your summary should be a half of the original passages' length and at least 150 words.
-- Prioritize information most likely to contain or support the answer.
-- Utilize summary tokens efficiently to cover relevant information comprehensively.
-- Ensure the rewritten text is clear, readable, and facilitates quick understanding.
-- Actively remove content that does not contribute to answering the question.
-- Understand the intent of the question and summarize to make it easier to find an answer according to the intent.
-Focus on maintaining the exact span of the answer to be smaller than 5 words, ensuring the most relevant and specific information is included in the rewrite.''',
+      'Summarize the passages to aid in question answering',
+      'Rewrite the passages for easier to question answering'
     ]
   few_shot_qa_pairs = True
   # one of {'accumulative_most_frequent', 'current_most_frequent', 'random',
