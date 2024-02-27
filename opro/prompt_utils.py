@@ -17,6 +17,7 @@ import time
 import google.generativeai as palm
 import openai
 
+openai.organization = ''
 
 def call_openai_server_single_prompt(
     prompt, model="gpt-3.5-turbo", max_decode_steps=20, temperature=0.8

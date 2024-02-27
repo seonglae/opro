@@ -1,0 +1,21 @@
+{
+  "apps": [
+    {
+      "name": "opro",
+      "script": "/root/opro/opro/optimization/optimize_instructions.py",
+      "args": [
+        "optimize_instructions.py",
+        "--optimizer=gpt-3.5-turbo",
+        "--scorer=gpt-3.5-turbo",
+        "--instruction_pos=Q_begin",
+        "--dataset=nq",
+        "--task=train",
+        "--openai_api_key="
+      ],
+      "wait_ready": false,
+      "autorestart": false,
+      "max_restarts": 5,
+      "interpreter": "/root/anaconda3/envs/opro/bin/python"
+    }
+  ]
+}
